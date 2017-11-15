@@ -1,0 +1,14 @@
+﻿  main.cpp
+c:\users\admin\documents\github\game-230-breakout\breakout\breakout\main.cpp(47): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+c:\users\admin\documents\github\game-230-breakout\breakout\breakout\main.cpp(52): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+c:\users\admin\documents\github\game-230-breakout\breakout\breakout\main.cpp(81): warning C4018: '<': signed/unsigned mismatch
+c:\users\admin\documents\github\game-230-breakout\breakout\breakout\main.cpp(168): warning C4018: '<': signed/unsigned mismatch
+c:\users\admin\documents\github\game-230-breakout\breakout\breakout\main.cpp(185): warning C4018: '<': signed/unsigned mismatch
+c:\users\admin\documents\github\game-230-breakout\breakout\breakout\main.cpp(195): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+c:\users\admin\documents\github\game-230-breakout\breakout\breakout\main.cpp(213): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\admin\documents\github\game-230-breakout\breakout\breakout\main.cpp(237): warning C4018: '<': signed/unsigned mismatch
+c:\users\admin\documents\github\game-230-breakout\breakout\breakout\main.cpp(239): warning C4018: '<': signed/unsigned mismatch
+c:\users\admin\documents\github\game-230-breakout\breakout\breakout\main.cpp(243): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+c:\users\admin\documents\github\game-230-breakout\breakout\breakout\main.cpp(244): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+  Breakout.vcxproj -> C:\Users\admin\Documents\GitHub\game-230-breakout\Breakout\Debug\Breakout.exe
+  Breakout.vcxproj -> C:\Users\admin\Documents\GitHub\game-230-breakout\Breakout\Debug\Breakout.pdb (Full PDB)
