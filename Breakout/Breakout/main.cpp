@@ -6,6 +6,8 @@
 #include <SFML/OpenGL.hpp>
 #include <SFML/Main.hpp>
 #include <memory>
+#include <algorithm>
+#include <vector>
 #include "Ball Class.h"
 #include "Paddle Class.h"
 #include "Brick Class.h"
@@ -14,6 +16,7 @@ using namespace sf;
 using namespace std;
 
 void update_state(float dt);
+int enemy_contact(FloatRect r1, FloatRect r2);
 void render_frame();
 bool rects_overlap(FloatRect r1, FloatRect r2);
 Vector2f bounce(Ball pong, Paddle bump);
@@ -97,6 +100,8 @@ void update_state(float dt)
 		firstServe = true;
 	}
 
+
+
 	//player movement
 	if (Keyboard::isKeyPressed(Keyboard::Left) && player.GetPosition().x > 0)
 	{
@@ -112,7 +117,7 @@ void update_state(float dt)
 	{
 		player.SetSpeed(0);
 	}
-	
+
 	//releasing ball upon pressing space
 	if (Keyboard::isKeyPressed(Keyboard::Space) && isReset)
 	{
@@ -154,7 +159,7 @@ void update_state(float dt)
 		onCollisionExitPaddle = true;
 	}
 
-	if (lives > 0)
+	if (lives > 0) //while not gameover and not next round
 	{
 		if (isReset)
 		{
@@ -168,6 +173,42 @@ void update_state(float dt)
 		for (int i = 0; i < bricks.size(); i++)
 		{
 			bricks[i]->update();
+		}
+		for (int i = 0; i < bricks.size(); i++)
+		{
+			if (enemy_contact(gameBall.getBoundary(), bricks[i]->getBoundary()) == 1 || enemy_contact(gameBall.getBoundary(), bricks[i]->getBoundary()) == 2)
+			{
+				if (bricks[i]->onCollisionExit)
+				{
+					bricks[i]->onCollisionExit = false;
+					bricks[i]->hit();
+					if (bricks[i]->isDead())
+					{
+						bricks.erase(bricks.begin() + i);
+					}
+					gameBall.SetVel(-gameBall.GetVel().x, gameBall.GetVel().y);
+					cout << "Enemy contact from left/right\n";
+				}
+			}
+			else if (enemy_contact(gameBall.getBoundary(), bricks[i]->getBoundary()) >= 3)
+			{
+				if (bricks[i]->onCollisionExit)
+				{
+					bricks[i]->onCollisionExit = false;
+					bricks[i]->hit();
+					if (bricks[i]->isDead())
+					{
+						bricks.erase(bricks.begin() + i);
+					}
+					gameBall.SetVel(gameBall.GetVel().x, -gameBall.GetVel().y);
+					cout << "Enemy contact from below/above\n";
+				}
+			}
+			else
+			{
+				bricks[i]->onCollisionExit = true;
+			}
+
 		}
 	}
 }
@@ -203,6 +244,42 @@ bool rects_overlap(FloatRect r1, FloatRect r2)
 		r1.left >= r2.left + r2.width ||
 		r1.top + r1.height <= r2.top ||
 		r1.top >= r2.top + r2.height);
+}
+
+int enemy_contact(FloatRect r1, FloatRect r2)
+{
+	if (rects_overlap(r1, r2)) //if there is a collision
+	{
+		float closestSide[4];
+		float closest;
+		Vector2f line;
+		Vector2f r1Center = Vector2f(r1.left + 0.5 * r1.width, r1.top + 0.5 * r1.height); //center of colliding object
+
+		//finds the center of each of the four sides of the collided with object
+		Vector2f r2LCenter = Vector2f(r2.left, r2.top + 0.5 * r2.height);
+		Vector2f r2RCenter = Vector2f(r2.left + r2.width, r2.top + 0.5 * r2.height);
+		Vector2f r2TCenter = Vector2f(r2.left + 0.5 * r2.width, r2.top);
+		Vector2f r2BCenter = Vector2f(r2.left + 0.5 * r2.width, r2.top + r2.height);
+
+		//finds the shortest line between the center of the colliding objects and a side
+		line = r2LCenter - r1Center;;
+		closestSide[0] = sqrt(line.x * line.x + line.y * line.y);
+		line = r2RCenter - r1Center;
+		closestSide[1] = sqrt(line.x * line.x + line.y * line.y);
+		line = r2TCenter - r1Center;
+		closestSide[2] = sqrt(line.x * line.x + line.y * line.y);
+		line = r2BCenter - r1Center;
+		closestSide[3] = sqrt(line.x * line.x + line.y * line.y);
+		closest = *min_element(closestSide, closestSide + 4);
+
+		for (int i = 0; i < 4; i++)
+		{
+			if (closest == closestSide[i])
+				return i + 1;
+		}
+	}
+	else
+		return 0;
 }
 
 Vector2f bounce(Ball pong, Paddle bump)

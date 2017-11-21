@@ -23,18 +23,24 @@ public:
 	bool isDead();
 	void shoot();
 	void move();
+	FloatRect getBoundary();
 
 	void update();
 
 	bool destroyAtt = false;
+	bool onCollisionExit = true;
 	Vector2f startPos;
 	Vector2f enemyPos;
 
 private:
 	CircleShape attack;
+	Texture fighter;
+	Texture shieldedFighter;
+
 	int hp;
 	float deltaTime;
 	bool isShooting = false;
+
 	Vector2f attackPos;
 	Vector2f attackVel;
 	Vector2f enemyVel = Vector2f(100, 0);
@@ -46,6 +52,7 @@ Enemy::Enemy(FloatRect r, int _hp)
 	hp = _hp;
 	shape.setSize(Vector2f(r.width, r.height));
 	shape.setFillColor(Color::White);
+
 }
 
 void Enemy::setDt(float dt)
@@ -108,4 +115,14 @@ void Enemy::update()
 {
 	move();
 	shoot();
+}
+
+FloatRect Enemy::getBoundary()
+{
+	FloatRect boundary;
+	boundary.height = shape.getSize().y;
+	boundary.width = shape.getSize().x;
+	boundary.left = enemyPos.x;
+	boundary.top = enemyPos.y;
+	return boundary;
 }
