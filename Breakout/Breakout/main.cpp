@@ -8,9 +8,11 @@
 #include <memory>
 #include <algorithm>
 #include <vector>
+#include <ctime>
 #include "Ball Class.h"
 #include "Paddle Class.h"
 #include "Brick Class.h"
+#include "Shield Brick.h"
 
 using namespace sf;
 using namespace std;
@@ -20,8 +22,10 @@ int enemy_contact(FloatRect r1, FloatRect r2);
 void render_frame();
 bool rects_overlap(FloatRect r1, FloatRect r2);
 Vector2f bounce(Ball pong, Paddle bump);
+void level_up();
 
 vector<unique_ptr<Enemy>> bricks;
+vector<unique_ptr<shielder>> barriers;
 RenderWindow window;
 Font font;
 
@@ -30,19 +34,34 @@ void populate();
 
 Ball gameBall;
 Paddle player;
+Texture background;
+RectangleShape back;
+
+Sound music;
+SoundBuffer musicBuf;
+Sound thud;
+SoundBuffer thudBuf;
+Sound bumperHit;
+SoundBuffer bumperHitBuf;
+Sound lostLife;
+SoundBuffer lostLifeBuf;
+Sound loseGame;
+SoundBuffer loseGameBuf;
 
 bool isReset = true;
 bool firstServe = true;
+bool playLoseSound = false;
 float difficulty = 1.0;
+float ballSpeed = 300;
 int level = 1;
 int lives = 3;
+int shipShooting;
 
 bool onCollisionExitPaddle = false;
 
 int main()
 {
 	window.create(VideoMode(800, 600), "SFML Example");
-	Clock clock;
 
 	//ball parameters
 	gameBall.ball.setFillColor(Color::Green);
@@ -61,6 +80,24 @@ int main()
 	populate();
 
 	font.loadFromFile("arial.TTF");
+	background.loadFromFile("background.png");
+
+	back.setSize(Vector2f(window.getSize().x, window.getSize().y));
+	back.setPosition(0, 0);
+	back.setTexture(&background);
+
+	musicBuf.loadFromFile("music.wav");
+	music.setBuffer(musicBuf);
+	thudBuf.loadFromFile("thud.wav");
+	thud.setBuffer(thudBuf);
+	bumperHitBuf.loadFromFile("bumperHit.wav");
+	bumperHit.setBuffer(bumperHitBuf);
+	lostLifeBuf.loadFromFile("lost life.wav");
+	lostLife.setBuffer(lostLifeBuf);
+	loseGameBuf.loadFromFile("lost game.wav");
+	loseGame.setBuffer(loseGameBuf);
+
+	Clock clock;
 
 	while (window.isOpen())
 	{
@@ -81,6 +118,11 @@ int main()
 
 void update_state(float dt)
 {
+	if (music.getStatus() != SoundSource::Playing)
+		music.play();
+
+	srand(time(0));
+
 	for (int i = 0; i < bricks.size(); i++)
 	{
 		bricks[i]->setDt(dt);
@@ -88,16 +130,28 @@ void update_state(float dt)
 
 	//ball collision with edges of screen
 	if (gameBall.GetPosition().x > window.getSize().x && gameBall.GetVel().x > 0)
+	{
 		gameBall.SetVel(-gameBall.GetVel().x, gameBall.GetVel().y);
+		thud.play();
+	}
 	if (gameBall.GetPosition().x < 0 && gameBall.GetVel().x < 0)
+	{
 		gameBall.SetVel(-gameBall.GetVel().x, gameBall.GetVel().y);
+		thud.play();
+	}
 	if (gameBall.GetPosition().y < 0 && gameBall.GetVel().y < 0)
+	{
 		gameBall.SetVel(gameBall.GetVel().x, -gameBall.GetVel().y);
+		thud.play();
+	}
 	if (gameBall.GetPosition().y > window.getSize().y && gameBall.GetVel().y > 0 && lives > 0)
 	{
 		lives--;
 		isReset = true;
 		firstServe = true;
+		lostLife.play();
+		if (lives <= 0)
+			playLoseSound = true;
 	}
 
 
@@ -128,15 +182,15 @@ void update_state(float dt)
 		{
 			if (player.GetSpeed() < 0)
 			{
-				gameBall.SetVel(-400 * difficulty, -400 * difficulty);
+				gameBall.SetVel(-ballSpeed * difficulty, -ballSpeed * difficulty);
 			}
 			else if (player.GetSpeed() > 0)
 			{
-				gameBall.SetVel(400 * difficulty, -400 * difficulty);
+				gameBall.SetVel(ballSpeed * difficulty, -ballSpeed * difficulty);
 			}
 			else
 			{
-				gameBall.SetVel(0, -400 * difficulty);
+				gameBall.SetVel(0, -ballSpeed * difficulty);
 			}
 			firstServe = false;
 		}
@@ -152,6 +206,7 @@ void update_state(float dt)
 			float magnitude = sqrt(gameBall.GetVel().x * gameBall.GetVel().x + gameBall.GetVel().y * gameBall.GetVel().y);
 			Vector2f newVelocity = direction * magnitude;
 			gameBall.SetVel(newVelocity.x, newVelocity.y);
+			bumperHit.play();
 		}
 	}
 	else
@@ -161,6 +216,7 @@ void update_state(float dt)
 
 	if (lives > 0) //while not gameover and not next round
 	{
+		//if the ball is reset
 		if (isReset)
 		{
 			gameBall.SetStartingPosition(player.GetPosition().x + 30, player.GetPosition().y - 15);
@@ -170,11 +226,20 @@ void update_state(float dt)
 			gameBall.SetPosition();
 			gameBall.SetDt(dt);
 		}
+
+		//updates all the enemies
 		for (int i = 0; i < bricks.size(); i++)
 		{
 			bricks[i]->update();
 		}
-		for (int i = 0; i < bricks.size(); i++)
+
+		for (int i = 0; i < barriers.size(); i++)
+		{
+			barriers[i]->update();
+		}
+
+		//ball collides with enemy
+		for (int i = 0; i < bricks.size(); i++) //normal enemy
 		{
 			if (enemy_contact(gameBall.getBoundary(), bricks[i]->getBoundary()) == 1 || enemy_contact(gameBall.getBoundary(), bricks[i]->getBoundary()) == 2)
 			{
@@ -187,7 +252,6 @@ void update_state(float dt)
 						bricks.erase(bricks.begin() + i);
 					}
 					gameBall.SetVel(-gameBall.GetVel().x, gameBall.GetVel().y);
-					cout << "Enemy contact from left/right\n";
 				}
 			}
 			else if (enemy_contact(gameBall.getBoundary(), bricks[i]->getBoundary()) >= 3)
@@ -201,7 +265,6 @@ void update_state(float dt)
 						bricks.erase(bricks.begin() + i);
 					}
 					gameBall.SetVel(gameBall.GetVel().x, -gameBall.GetVel().y);
-					cout << "Enemy contact from below/above\n";
 				}
 			}
 			else
@@ -210,12 +273,79 @@ void update_state(float dt)
 			}
 
 		}
+		for (int i = 0; i < barriers.size(); i++) //shield enemy
+		{
+			if (enemy_contact(gameBall.getBoundary(), barriers[i]->getBoundary()) == 1 || enemy_contact(gameBall.getBoundary(), barriers[i]->getBoundary()) == 2)
+			{
+				if (barriers[i]->onCollisionExit)
+				{
+					barriers[i]->onCollisionExit = false;
+					barriers[i]->hit();
+					if (barriers[i]->isDead())
+					{
+						barriers.erase(barriers.begin() + i);
+					}
+					gameBall.SetVel(-gameBall.GetVel().x, gameBall.GetVel().y);
+				}
+			}
+			else if (enemy_contact(gameBall.getBoundary(), barriers[i]->getBoundary()) >= 3)
+			{
+				if (barriers[i]->onCollisionExit)
+				{
+					barriers[i]->onCollisionExit = false;
+					barriers[i]->hit();
+					if (barriers[i]->isDead())
+					{
+						barriers.erase(barriers.begin() + i);
+					}
+					gameBall.SetVel(gameBall.GetVel().x, -gameBall.GetVel().y);
+				}
+			}
+			else
+			{
+				barriers[i]->onCollisionExit = true;
+			}
+		}
+
+		//a random enemy shoots periodically
+		if (bricks.size() > 0)
+			shipShooting = rand() % bricks.size();
+		
+		//rebuilds level to next
+		if (bricks.size() <= 0)
+		{
+			level++;
+			create_bricks();
+			populate();
+			lives = 3;
+			isReset = true;
+		}
+
 	}
+	if (lives <= 0)
+	{
+		if (playLoseSound)
+			loseGame.play();
+		playLoseSound = false;
+
+	}
+
+	if (Keyboard::isKeyPressed(Keyboard::LShift))
+		level_up();
 }
 
 void render_frame()
 {
 	window.clear();
+	window.draw(back);
+
+	Text livesLeft;
+	livesLeft.setFont(font);
+	livesLeft.setCharacterSize(50);
+	livesLeft.setString(to_string(lives));
+	livesLeft.setFillColor(Color::Red);
+	livesLeft.setPosition(50, window.getSize().y - 75);
+	window.draw(livesLeft);
 
 	if (lives > 0)
 	{
@@ -227,15 +357,13 @@ void render_frame()
 	{
 		bricks[i]->draw(window);
 	}
-	
-	Text livesLeft;
-	livesLeft.setFont(font);
-	livesLeft.setCharacterSize(50);
-	livesLeft.setString(to_string(lives));
-	livesLeft.setFillColor(Color::White);
-	livesLeft.setPosition(50, window.getSize().y - 75);
-	window.draw(livesLeft);
+	for (int i = 0; i < barriers.size(); i++)
+	{
+		barriers[i]->draw(window);
+	}
+
 	window.display();
+
 }
 
 bool rects_overlap(FloatRect r1, FloatRect r2)
@@ -294,21 +422,63 @@ Vector2f bounce(Ball pong, Paddle bump)
 
 void create_bricks()
 {
-	for (int i = 0; i < 5 * 3 + level - 1; ++i)
+	//build level 1
+	if (level == 1)
 	{
-		FloatRect r;
-		r.width = 80;
-		r.height = 80;
-		int hp = 1;
-		Enemy* b = new Enemy(r, hp);
-		bricks.push_back(unique_ptr<Enemy>(b));
+		for (int i = 0; i < 5 * 3; ++i)
+		{
+			FloatRect r;
+			r.width = 80;
+			r.height = 80;
+			int hp = 2;
+			Enemy* b = new Enemy(r, hp);
+			bricks.push_back(unique_ptr<Enemy>(b));
+		}
+	}
+	//build level 2
+	if (level == 2)
+	{
+		for (int i = 0; i < 5 * 3; ++i)
+		{
+			FloatRect r;
+			r.width = 80;
+			r.height = 80;
+			int hp;
+			if (rand() % 2 == 0)
+				hp = 2;
+			else
+				hp = 4;
+			Enemy* b = new Enemy(r, hp);
+			bricks.push_back(unique_ptr<Enemy>(b));
+		}
+	}
+	//build level 3
+	if (level == 3)
+	{
+		for (int i = 0; i < 5 * 2; ++i)
+		{
+			FloatRect r;
+			r.width = 80;
+			r.height = 80;
+			int hp = 2;
+			Enemy* b = new Enemy(r, hp);
+			bricks.push_back(unique_ptr<Enemy>(b));
+		}
+		for (int i = 0; i < 5; i++)
+		{
+			FloatRect r;
+			r.width = 160;
+			r.height = 80;
+			int hp = 7;
+			shielder* b = new shielder(r, hp);
+			barriers.push_back(unique_ptr<shielder>(b));
+		}
 	}
 
 }
 
 void populate()
 {
-	int rows = 2 + level;
 	int x = 0;
 	
 	while (x < bricks.size())
@@ -318,10 +488,29 @@ void populate()
 			for (int j = 0; j < 5; j++)
 			{
 				bricks[x]->shape.setPosition(Vector2f((j * 160), (i * 100)));
-				bricks[x]->startPos = Vector2f((j * 160), (i * 100));
+				bricks[x]->startPos = bricks[x]->shape.getPosition();
 				bricks[x]->enemyPos = bricks[x]->startPos;
+				bricks[x]->setVel(Vector2f(100, 0));
 				x++;
 			}
 		}
 	}
+	if (level == 3)
+	{
+		for (int i = 0; i < barriers.size(); i++)
+		{
+			barriers[i]->shapeB.setPosition(Vector2f(i * 160, 200));
+			barriers[i]->startPos = barriers[i]->shapeB.getPosition();
+			barriers[i]->enemyPos = barriers[i]->startPos;
+		}
+	}
+}
+
+void level_up()
+{
+	bricks.clear();
+	level++;
+	create_bricks();
+	populate();
+	isReset = true;
 }

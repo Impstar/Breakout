@@ -29,5 +29,8 @@
     <ClInclude Include="Brick Class.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Shield Brick.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

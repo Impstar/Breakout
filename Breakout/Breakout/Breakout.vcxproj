@@ -154,6 +154,7 @@
     <ClInclude Include="Ball Class.h" />
     <ClInclude Include="Brick Class.h" />
     <ClInclude Include="Paddle Class.h" />
+    <ClInclude Include="Shield Brick.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
