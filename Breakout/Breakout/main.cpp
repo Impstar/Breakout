@@ -13,6 +13,7 @@
 #include "Paddle Class.h"
 #include "Brick Class.h"
 #include "Shield Brick.h"
+#include "projectile.h";
 
 using namespace sf;
 using namespace std;
@@ -26,6 +27,7 @@ void level_up();
 
 vector<unique_ptr<Enemy>> bricks;
 vector<unique_ptr<shielder>> barriers;
+Projectile attack;
 RenderWindow window;
 Font font;
 
@@ -36,6 +38,11 @@ Ball gameBall;
 Paddle player;
 Texture background;
 RectangleShape back;
+
+Texture fighter_tex;
+Texture shieldedFighter_tex;
+Texture enemyB;
+Texture shieldedEnemyB;
 
 Sound music;
 SoundBuffer musicBuf;
@@ -48,14 +55,23 @@ SoundBuffer lostLifeBuf;
 Sound loseGame;
 SoundBuffer loseGameBuf;
 
+Sound hitFighter;
+SoundBuffer hitFighterBuf;
+Sound hitShield;
+SoundBuffer hitShieldBuf;
+Sound destroyed;
+SoundBuffer destroyedBuf;
+
 bool isReset = true;
 bool firstServe = true;
 bool playLoseSound = false;
+bool isShooting = false;
 float difficulty = 1.0;
 float ballSpeed = 300;
 int level = 1;
 int lives = 3;
 int shipShooting;
+float timeToShoot = 3.0;
 
 bool onCollisionExitPaddle = false;
 
@@ -82,10 +98,18 @@ int main()
 	font.loadFromFile("arial.TTF");
 	background.loadFromFile("background.png");
 
+	//load enemy textures
+	fighter_tex.loadFromFile("Breakout enemy basic.png");
+	shieldedFighter_tex.loadFromFile("Breakout enemy shielded.png");
+	enemyB.loadFromFile("Breakout big enemy.png");
+	shieldedEnemyB.loadFromFile("Breakout big enemy shielded.png");
+
+	//load and position background
 	back.setSize(Vector2f(window.getSize().x, window.getSize().y));
 	back.setPosition(0, 0);
 	back.setTexture(&background);
 
+	//load sound effects
 	musicBuf.loadFromFile("music.wav");
 	music.setBuffer(musicBuf);
 	thudBuf.loadFromFile("thud.wav");
@@ -96,6 +120,14 @@ int main()
 	lostLife.setBuffer(lostLifeBuf);
 	loseGameBuf.loadFromFile("lost game.wav");
 	loseGame.setBuffer(loseGameBuf);
+
+	//enemy sound effects
+	hitFighterBuf.loadFromFile("fighterHit.wav");
+	hitFighter.setBuffer(hitFighterBuf);
+	hitShieldBuf.loadFromFile("shield hit.wav");
+	hitShield.setBuffer(hitShieldBuf);
+	destroyedBuf.loadFromFile("explosion.wav");
+	destroyed.setBuffer(destroyedBuf);
 
 	Clock clock;
 
@@ -175,6 +207,7 @@ void update_state(float dt)
 	//releasing ball upon pressing space
 	if (Keyboard::isKeyPressed(Keyboard::Space) && isReset)
 	{
+		cout << level << endl;
 		isReset = false;
 		gameBall.SetPosition();
 		gameBall.SetDt(dt);
@@ -307,10 +340,6 @@ void update_state(float dt)
 			}
 		}
 
-		//a random enemy shoots periodically
-		if (bricks.size() > 0)
-			shipShooting = rand() % bricks.size();
-		
 		//rebuilds level to next
 		if (bricks.size() <= 0)
 		{
@@ -319,6 +348,34 @@ void update_state(float dt)
 			populate();
 			lives = 3;
 			isReset = true;
+		}
+
+		//a random enemy shoots periodically
+		if (bricks.size() > 0)
+			shipShooting = rand() % bricks.size();
+
+		timeToShoot -= dt;
+		if (timeToShoot <= 0)
+		{
+			timeToShoot = 3;
+			isShooting = true;
+			attack.InitializeProjectile(static_cast<float>(bricks[shipShooting]->shape.getPosition().x + 0.5 * bricks[shipShooting]->shape.getSize().x),
+				bricks[shipShooting]->shape.getPosition().y + bricks[shipShooting]->shape.getSize().y, player.GetPosition());
+			cout << "x: " << attack.GetPosition().x << ", y: " << attack.GetPosition().y << endl;
+		}
+		if (isShooting)
+		{
+			attack.SetDt(dt);
+			attack.SetPosition();
+		}
+		if (rects_overlap(attack.getBoundary(), player.getBoundary()) && isShooting)
+		{
+			isShooting = false;
+			lives--;
+		}
+		else if (attack.GetCurrentPositionY() >= window.getSize().y)
+		{
+			isShooting = false;
 		}
 
 	}
@@ -332,6 +389,7 @@ void update_state(float dt)
 
 	if (Keyboard::isKeyPressed(Keyboard::LShift))
 		level_up();
+
 }
 
 void render_frame()
@@ -351,6 +409,8 @@ void render_frame()
 	{
 		window.draw(gameBall.ball);
 		window.draw(player.bumper);
+		if (isShooting)
+			window.draw(attack.shot);
 	}
 
 	for (int i = 0; i < bricks.size(); ++i)

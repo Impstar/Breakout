@@ -12,6 +12,9 @@
 using namespace std;
 using namespace sf;
 
+extern Texture enemyB;
+extern Texture shieldedEnemyB;
+
 class shielder : public Enemy
 {
 public:
@@ -19,9 +22,9 @@ public:
 	RectangleShape shapeB;
 
 	void update();
-
-	Texture enemyB;
-	Texture shieldedEnemyB;
+	void draw(RenderWindow &window);
+	void hit();
+	FloatRect getBoundary();
 
 private:
 
@@ -33,8 +36,7 @@ shielder::shielder(FloatRect r, int _hp)
 	hp = _hp;
 	shapeB.setSize(Vector2f(r.width, r.height));
 	shapeB.setFillColor(Color::White);
-	enemyB.loadFromFile("Breakout big enemy.png");
-	shieldedEnemyB.loadFromFile("Breakout big enemy shielded.png");
+
 }
 
 void shielder::update()
@@ -43,4 +45,33 @@ void shielder::update()
 		shapeB.setTexture(&enemyB);
 	else if (hp > 2)
 		shapeB.setTexture(&shieldedEnemyB);
+}
+
+void shielder::draw(RenderWindow &window)
+{
+	if (!isDead())
+		window.draw(shapeB);
+	if (destroyAtt)
+		window.draw(attack);
+}
+
+void shielder::hit()
+{
+	hp--;
+	if (hp == 2 || hp == 1)
+		hitFighter.play();
+	else if (hp > 2)
+		hitShield.play();
+	else
+		destroyed.play();
+}
+
+FloatRect shielder::getBoundary()
+{
+	FloatRect boundary;
+	boundary.height = shapeB.getSize().y;
+	boundary.width = shapeB.getSize().x;
+	boundary.left = enemyPos.x;
+	boundary.top = enemyPos.y;
+	return boundary;
 }

@@ -11,6 +11,16 @@
 using namespace std;
 using namespace sf;
 
+extern Texture fighter_tex;
+extern Texture shieldedFighter_tex;
+
+extern Sound hitFighter;
+extern SoundBuffer hitFighterBuf;
+extern Sound hitShield;
+extern SoundBuffer hitShieldBuf;
+extern Sound destroyed;
+extern SoundBuffer destroyedBuf;
+
 class Enemy
 {
 public:
@@ -40,16 +50,6 @@ public:
 protected:
 	CircleShape attack;
 
-	Texture fighter;
-	Texture shieldedFighter;
-
-	Sound hitFighter;
-	SoundBuffer hitFighterBuf;
-	Sound hitShield;
-	SoundBuffer hitShieldBuf;
-	Sound destroyed;
-	SoundBuffer destroyedBuf;
-
 	int hp;
 	float deltaTime;
 	bool isShooting = false;
@@ -65,17 +65,6 @@ Enemy::Enemy(FloatRect r, int _hp)
 	hp = _hp;
 	shape.setSize(Vector2f(r.width, r.height));
 	shape.setFillColor(Color::White);
-
-	fighter.loadFromFile("Breakout enemy basic.png");
-	shieldedFighter.loadFromFile("Breakout enemy shielded.png");
-
-	hitFighterBuf.loadFromFile("fighterHit.wav");
-	hitFighter.setBuffer(hitFighterBuf);
-	hitShieldBuf.loadFromFile("shield hit.wav");
-	hitShield.setBuffer(hitShieldBuf);
-	destroyedBuf.loadFromFile("explosion.wav");
-	destroyed.setBuffer(destroyedBuf);
-
 }
 
 void Enemy::setDt(float dt)
@@ -150,9 +139,9 @@ void Enemy::update()
 	move();
 	shoot();
 	if (hp <= 2)
-		shape.setTexture(&fighter);
+		shape.setTexture(&fighter_tex);
 	else if (hp > 2)
-		shape.setTexture(&shieldedFighter);
+		shape.setTexture(&shieldedFighter_tex);
 }
 
 FloatRect Enemy::getBoundary()

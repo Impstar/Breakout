@@ -32,5 +32,8 @@
     <ClInclude Include="Shield Brick.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="projectile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
