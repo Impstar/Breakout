@@ -12,6 +12,9 @@
 using namespace std;
 using namespace sf;
 
+extern Sound shotEffect;
+extern SoundBuffer shotEffectBuf;
+
 class Projectile
 {
 public:
@@ -28,7 +31,7 @@ public:
 	void SetPosition();
 	Vector2f GetPosition();
 
-	void SetVel(float x, float y);
+	void SetVel(Vector2f target);
 	Vector2f GetVel();
 
 	FloatRect getBoundary();
@@ -55,6 +58,7 @@ void Projectile::InitializeProjectile(float x, float y, Vector2f target)
 	pos.x = x;
 	pos.y = y;
 	targetPos = target;
+	shotEffect.play();
 }
 
 void Projectile::SetBallPosition(float x, float y)
@@ -85,9 +89,17 @@ void Projectile::SetDt(float dt)
 }
 
 void Projectile::SetPosition()
-{
-	pos += targetPos * deltaTime;
+{	
+	Vector2f v = targetPos - pos;
+	float len = sqrtf(v.x*v.x + v.y*v.y);
+	v /= len;
+
+	pos += v * 300.0f * deltaTime;
+
+	//pos += targetPos * deltaTime;
 	shot.setPosition(pos);
+
+
 }
 
 Vector2f Projectile::GetPosition()
@@ -95,10 +107,9 @@ Vector2f Projectile::GetPosition()
 	return pos;
 }
 
-void Projectile::SetVel(float x, float y)
+void Projectile::SetVel(Vector2f target)
 {
-	vel.x = x;
-	vel.y = y;
+	vel = target;
 }
 
 Vector2f Projectile::GetVel()

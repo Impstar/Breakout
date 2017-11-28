@@ -54,6 +54,8 @@ Sound lostLife;
 SoundBuffer lostLifeBuf;
 Sound loseGame;
 SoundBuffer loseGameBuf;
+Sound shotEffect;
+SoundBuffer shotEffectBuf;
 
 Sound hitFighter;
 SoundBuffer hitFighterBuf;
@@ -69,8 +71,9 @@ bool isShooting = false;
 float difficulty = 1.0;
 float ballSpeed = 300;
 int level = 1;
-int lives = 3;
+int lives = 5;
 int shipShooting;
+int score = 0;
 float timeToShoot = 3.0;
 
 bool onCollisionExitPaddle = false;
@@ -128,6 +131,8 @@ int main()
 	hitShield.setBuffer(hitShieldBuf);
 	destroyedBuf.loadFromFile("explosion.wav");
 	destroyed.setBuffer(destroyedBuf);
+	shotEffectBuf.loadFromFile("enemy shot.wav");
+	shotEffect.setBuffer(shotEffectBuf);
 
 	Clock clock;
 
@@ -283,6 +288,7 @@ void update_state(float dt)
 					if (bricks[i]->isDead())
 					{
 						bricks.erase(bricks.begin() + i);
+						score += 100;
 					}
 					gameBall.SetVel(-gameBall.GetVel().x, gameBall.GetVel().y);
 				}
@@ -296,6 +302,7 @@ void update_state(float dt)
 					if (bricks[i]->isDead())
 					{
 						bricks.erase(bricks.begin() + i);
+						score += 100;
 					}
 					gameBall.SetVel(gameBall.GetVel().x, -gameBall.GetVel().y);
 				}
@@ -317,6 +324,7 @@ void update_state(float dt)
 					if (barriers[i]->isDead())
 					{
 						barriers.erase(barriers.begin() + i);
+						score += 300;
 					}
 					gameBall.SetVel(-gameBall.GetVel().x, gameBall.GetVel().y);
 				}
@@ -330,6 +338,7 @@ void update_state(float dt)
 					if (barriers[i]->isDead())
 					{
 						barriers.erase(barriers.begin() + i);
+						score += 100;
 					}
 					gameBall.SetVel(gameBall.GetVel().x, -gameBall.GetVel().y);
 				}
@@ -343,10 +352,16 @@ void update_state(float dt)
 		//rebuilds level to next
 		if (bricks.size() <= 0)
 		{
-			level++;
+			if (level < 3)
+				level++;
+			else if (level >= 3)
+			{
+				level = 1;
+				ballSpeed += 100;
+			}
 			create_bricks();
 			populate();
-			lives = 3;
+			lives = 5;
 			isReset = true;
 		}
 
@@ -360,7 +375,8 @@ void update_state(float dt)
 			timeToShoot = 3;
 			isShooting = true;
 			attack.InitializeProjectile(static_cast<float>(bricks[shipShooting]->shape.getPosition().x + 0.5 * bricks[shipShooting]->shape.getSize().x),
-				bricks[shipShooting]->shape.getPosition().y + bricks[shipShooting]->shape.getSize().y, player.GetPosition());
+				bricks[shipShooting]->shape.getPosition().y + bricks[shipShooting]->shape.getSize().y, Vector2f(player.GetPosition().x, player.GetPosition().y + 100));
+			attack.SetPosition();
 			cout << "x: " << attack.GetPosition().x << ", y: " << attack.GetPosition().y << endl;
 		}
 		if (isShooting)
@@ -384,11 +400,23 @@ void update_state(float dt)
 		if (playLoseSound)
 			loseGame.play();
 		playLoseSound = false;
-
+		if (Keyboard::isKeyPressed(Keyboard::Space))
+		{
+			level = 1;
+			lives = 5;
+			score = 0;
+			bricks.clear();
+			barriers.clear();
+			create_bricks();
+			populate();
+			isReset = true;
+		}
 	}
 
 	if (Keyboard::isKeyPressed(Keyboard::LShift))
 		level_up();
+	if (Keyboard::isKeyPressed(Keyboard::RShift))
+		lives++;
 
 }
 
@@ -400,11 +428,22 @@ void render_frame()
 	Text livesLeft;
 	livesLeft.setFont(font);
 	livesLeft.setCharacterSize(50);
-	livesLeft.setString(to_string(lives));
+	if (lives > 0)
+		livesLeft.setString(to_string(lives));
+	else
+		livesLeft.setString("Press space to restart");
 	livesLeft.setFillColor(Color::Red);
 	livesLeft.setPosition(50, window.getSize().y - 75);
-	window.draw(livesLeft);
 
+	Text scoreText;
+	scoreText.setFont(font);
+	scoreText.setCharacterSize(50);
+	scoreText.setString(to_string(score));
+	scoreText.setFillColor(Color::White);
+	scoreText.setPosition(window.getSize().x - 200, window.getSize().y - 75);
+
+	window.draw(livesLeft);
+	window.draw(scoreText);
 	if (lives > 0)
 	{
 		window.draw(gameBall.ball);
@@ -569,7 +608,11 @@ void populate()
 void level_up()
 {
 	bricks.clear();
-	level++;
+	barriers.clear();
+	if (level < 3)
+		level++;
+	else if (level >= 3)
+		level = 1;
 	create_bricks();
 	populate();
 	isReset = true;

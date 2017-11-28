@@ -51,8 +51,6 @@ void shielder::draw(RenderWindow &window)
 {
 	if (!isDead())
 		window.draw(shapeB);
-	if (destroyAtt)
-		window.draw(attack);
 }
 
 void shielder::hit()

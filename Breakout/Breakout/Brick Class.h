@@ -20,6 +20,8 @@ extern Sound hitShield;
 extern SoundBuffer hitShieldBuf;
 extern Sound destroyed;
 extern SoundBuffer destroyedBuf;
+extern Sound shotEffect;
+extern SoundBuffer shotEffectBuf;
 
 class Enemy
 {
@@ -35,27 +37,19 @@ public:
 	void draw(RenderWindow &window);
 	void hit();
 	bool isDead();
-	void shoot();
 	void move();
 	void setVel(Vector2f vel);
 	FloatRect getBoundary();
 
 	void update();
 
-	bool destroyAtt = false;
 	bool onCollisionExit = true;
 	Vector2f startPos;
 	Vector2f enemyPos;
 
 protected:
-	CircleShape attack;
-
 	int hp;
 	float deltaTime;
-	bool isShooting = false;
-
-	Vector2f attackPos;
-	Vector2f attackVel;
 	Vector2f enemyVel = Vector2f(0, 0);
 
 };
@@ -81,8 +75,6 @@ void Enemy::draw(RenderWindow &window)
 {
 	if (!isDead())
 		window.draw(shape);
-	if (destroyAtt)
-		window.draw(attack);
 }
 
 void Enemy::hit()
@@ -102,19 +94,6 @@ bool Enemy::isDead()
 		return true;
 	else
 		return false;
-}
-
-void Enemy::shoot()
-{
-	if (isShooting)
-	{
-		destroyAtt = true;
-		attack.setPosition(Vector2f(shape.getPosition()));
-		isShooting = false;
-	}
-	attackVel = Vector2f(0, 300);
-	attackPos += attackVel * deltaTime;
-	attack.setPosition(attackPos);
 }
 
 void Enemy::move()
@@ -137,7 +116,6 @@ void Enemy::move()
 void Enemy::update()
 {
 	move();
-	shoot();
 	if (hp <= 2)
 		shape.setTexture(&fighter_tex);
 	else if (hp > 2)
